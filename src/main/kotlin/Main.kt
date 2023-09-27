@@ -16,6 +16,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
+import com.example.data.Summoner
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.java.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.serialization.jackson.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 @Preview
@@ -76,6 +87,43 @@ fun SearchBox() {
         TextButton(
             onClick = {
                 println(textState.value)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val client = HttpClient(Java) {
+                        install(ContentNegotiation) {
+                            jackson()
+                        }
+                    }
+                    val url = "https://kr.api.riotgames.com/lol/summoner/v4/summoners/by-name/${textState.value}"
+                    println(url)
+                    val response = client.get(url) {
+                        headers {
+                            append(
+                                "X-Riot-Token",
+                                "<Riot API Key>"
+                            )
+                        }
+                    }
+                    val res = response.body<Summoner>()
+                    println("summoner name: ${res.name}, level: ${res.summonerLevel}, puuid: ${res.puuid}")
+                    val matchUrl = "https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/${res.puuid}/ids?start=0&count=1"
+                    val matches = client.get(matchUrl) {
+                        headers {
+                            append(
+                                "X-Riot-Token",
+                                "<Riot API Key>"
+                            )
+                        }
+                    }
+                    println(matches.bodyAsText())
+                    val res2 = matches.body<List<String>>()
+                    println(res2)
+                }
+
+
+
+
+
+
             },
             modifier = Modifier
                 .size(100.dp, 40.dp),
@@ -108,7 +156,6 @@ fun ControllerImage() {
                 .padding(15.dp)
         )
     }
-
 }
 @Composable
 @Preview
